@@ -1,0 +1,23 @@
+services:
+  postgres-db:
+    image: pgvector/pgvector:pg16
+    container_name: sitemap_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sitemap_agent_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespass
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sitemap_agent_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+    driver: local

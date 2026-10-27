@@ -1,0 +1,26 @@
+## Build and Binary Directories
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Python Artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.env
+
+## Database & Docker Local Mounts
+pgdata/
+*.log
+
+## IDE and Editor Specific
+.vs/
+.vscode/
+.idea/
+*.swp

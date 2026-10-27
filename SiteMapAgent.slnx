@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/backend-aspnet/">
+    <Project Path="src/backend-aspnet/SiteMapAgent.Api/SiteMapAgent.Api.csproj" />
+    <Project Path="src/backend-aspnet/SiteMapAgent.Application/SiteMapAgent.Application.csproj" />
+    <Project Path="src/backend-aspnet/SiteMapAgent.Domain/SiteMapAgent.Domain.csproj" />
+    <Project Path="src/backend-aspnet/SiteMapAgent.Infrastructure/SiteMapAgent.Infrastructure.csproj" />
+  </Folder>
+</Solution>
