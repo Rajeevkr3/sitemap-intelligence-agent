@@ -3,8 +3,20 @@ using SiteMapAgent.Application.Common.Interfaces;
 using SiteMapAgent.Application.Audits.Commands;
 using SiteMapAgent.Infrastructure.Persistence;
 using SiteMapAgent.Infrastructure.Persistence.Repositories;
+using SiteMapAgent.Infrastructure.Persistence.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Register CORS for Next.js frontend
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontendApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -16,7 +28,10 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+// Dependency Injection
 builder.Services.AddScoped<IAuditJobRepository, AuditJobRepository>();
+builder.Services.AddScoped<IAuditQueryService, AuditQueryService>();
+
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateAuditJobCommand).Assembly));
 
 var app = builder.Build();
@@ -28,6 +43,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("AllowFrontendApp");
 app.UseAuthorization();
 app.MapControllers();
 
