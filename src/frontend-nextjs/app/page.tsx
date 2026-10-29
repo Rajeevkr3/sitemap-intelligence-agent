@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
+import NetworkGraph from "@/components/NetworkGraph";
 import {
   createAuditJob,
   fetchAuditJob,
@@ -25,71 +25,51 @@ import {
   GitFork,
 } from "lucide-react";
 
-// Dynamically import NetworkGraph with SSR disabled to safeguard HTML5 Canvas contexts
-const NetworkGraph = dynamic(() => import("@/components/NetworkGraph"), {
-  ssr: false,
-  loading: () => (
-    <div className="h-[500px] w-full bg-slate-950 rounded-xl flex items-center justify-center text-slate-400 text-sm">
-      Initializing Topology Graph Canvas...
-    </div>
-  ),
-});
-
 export default function DashboardPage() {
-  // Input Controls
   const [targetUrl, setTargetUrl] = useState<string>("https://books.toscrape.com");
   const [maxDepth, setMaxDepth] = useState<number>(2);
   const [maxPages, setMaxPages] = useState<number>(15);
 
-  // Active Job State (Defaults to latest validated audit execution)
   const [activeJobId, setActiveJobId] = useState<string>("49609bc0-65c3-426e-8c35-5d58d6b8f284");
   const [jobDetail, setJobDetail] = useState<AuditJobDetail | null>(null);
 
-  // Audit Ingestion Collections
   const [pages, setPages] = useState<CrawledPage[]>([]);
   const [issues, setIssues] = useState<AuditIssue[]>([]);
   const [graphData, setGraphData] = useState<GraphTopology | null>(null);
 
-  // UI Control State
   const [loading, setLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<"graph" | "pages" | "issues">("graph");
 
-  /**
-   * Fetches job metadata, topological vertices, defect logs, and graph linkages.
-   */
   const loadJobData = async (jobId: string) => {
     try {
       const job = await fetchAuditJob(jobId);
       setJobDetail(job);
     } catch (err) {
-      console.error("Error fetching job details:", err);
+      console.error("Job fetch error:", err);
     }
 
     try {
       const fetchedPages = await fetchCrawledPages(jobId);
       setPages(fetchedPages);
     } catch (err) {
-      console.error("Error fetching crawled pages:", err);
+      console.error("Pages fetch error:", err);
     }
 
     try {
       const fetchedIssues = await fetchAuditIssues(jobId);
       setIssues(fetchedIssues);
     } catch (err) {
-      console.error("Error fetching audit issues:", err);
+      console.error("Issues fetch error:", err);
     }
 
     try {
       const fetchedGraph = await fetchGraphTopology(jobId);
       setGraphData(fetchedGraph);
     } catch (err) {
-      console.error("Error fetching graph topology:", err);
+      console.error("Graph fetch error:", err);
     }
   };
 
-  /**
-   * Lifecycle trigger: Polls the backend API while an audit job is in an active state.
-   */
   useEffect(() => {
     if (!activeJobId) return;
     loadJobData(activeJobId);
@@ -103,9 +83,6 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [activeJobId, jobDetail?.status]);
 
-  /**
-   * Dispatches a new audit request to the ASP.NET Core CQRS command pipeline.
-   */
   const handleStartAudit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -118,7 +95,7 @@ export default function DashboardPage() {
       setGraphData(null);
       setActiveTab("graph");
     } catch (err) {
-      alert("Failed to initialize audit job. Ensure the ASP.NET Core API is running on port 5132.");
+      alert("Failed to initialize audit. Ensure ASP.NET Core API is running on port 5132.");
     } finally {
       setLoading(false);
     }
@@ -126,7 +103,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Global Application Header */}
       <header className="border-b border-slate-200 bg-white sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -142,8 +118,8 @@ export default function DashboardPage() {
             <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider">
               <span
                 className={`px-3 py-1 rounded-full ${jobDetail.status === "COMPLETED"
-                  ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                  : "bg-amber-100 text-amber-800 border border-amber-300 animate-pulse"
+                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                    : "bg-amber-100 text-amber-800 border border-amber-300 animate-pulse"
                   }`}
               >
                 {jobDetail.status}
@@ -154,7 +130,6 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* Audit Dispatch Control Panel */}
         <section className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
             <Play className="w-4 h-4 text-slate-700" />
@@ -198,7 +173,6 @@ export default function DashboardPage() {
           </form>
         </section>
 
-        {/* Aggregate KPI Metric Cards */}
         {jobDetail && (
           <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
@@ -243,14 +217,13 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {/* Tabbed Inspection Canvas */}
         <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="flex border-b border-slate-200 bg-slate-50/50 px-6 pt-3">
             <button
               onClick={() => setActiveTab("graph")}
               className={`pb-3 px-4 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${activeTab === "graph"
-                ? "border-slate-900 text-slate-900"
-                : "border-transparent text-slate-500 hover:text-slate-700"
+                  ? "border-slate-900 text-slate-900"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
             >
               <GitFork className="w-4 h-4" />
@@ -259,8 +232,8 @@ export default function DashboardPage() {
             <button
               onClick={() => setActiveTab("pages")}
               className={`pb-3 px-4 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${activeTab === "pages"
-                ? "border-slate-900 text-slate-900"
-                : "border-transparent text-slate-500 hover:text-slate-700"
+                  ? "border-slate-900 text-slate-900"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
             >
               <FileText className="w-4 h-4" />
@@ -269,8 +242,8 @@ export default function DashboardPage() {
             <button
               onClick={() => setActiveTab("issues")}
               className={`pb-3 px-4 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${activeTab === "issues"
-                ? "border-slate-900 text-slate-900"
-                : "border-transparent text-slate-500 hover:text-slate-700"
+                  ? "border-slate-900 text-slate-900"
+                  : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
             >
               <AlertTriangle className="w-4 h-4" />
@@ -279,10 +252,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="p-6">
-            {/* View 1: 2D Interactive Force-Directed Canvas */}
             {activeTab === "graph" && (
               <div>
-                {graphData && graphData.nodes.length > 0 ? (
+                {graphData && graphData.nodes && graphData.nodes.length > 0 ? (
                   <NetworkGraph data={graphData} />
                 ) : (
                   <div className="h-[400px] flex items-center justify-center text-slate-400 text-sm border border-dashed border-slate-300 rounded-xl">
@@ -292,7 +264,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* View 2: Tabular Centrality & Page Details */}
             {activeTab === "pages" && (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-slate-600">
@@ -328,7 +299,6 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* View 3: Flagged Defects & Near-Duplicate Items */}
             {activeTab === "issues" && (
               <div className="space-y-3">
                 {issues.length === 0 ? (

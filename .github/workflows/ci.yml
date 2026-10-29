@@ -1,0 +1,79 @@
+name: CI/CD Quality Pipeline
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  backend-dotnet:
+    name: Build & Test ASP.NET Core Clean Architecture
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore Dependencies
+        run: dotnet restore SiteMapAgent.sln
+
+      - name: Compile Solution (Release)
+        run: dotnet build SiteMapAgent.sln --configuration Release --no-restore
+
+      - name: Execute Automated Unit Tests
+        run: dotnet test SiteMapAgent.sln --configuration Release --no-build --verbosity normal
+
+  engine-python:
+    name: Test Python Analysis Engine
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        working-directory: ./src/engine-python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Pytest Test Suite
+        working-directory: ./src/engine-python
+        run: pytest -v
+
+  frontend-nextjs:
+    name: Lint & Build Next.js Dashboard
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: ./src/frontend-nextjs/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./src/frontend-nextjs
+        run: npm ci
+
+      - name: Compile Next.js Application
+        working-directory: ./src/frontend-nextjs
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        run: npm run build

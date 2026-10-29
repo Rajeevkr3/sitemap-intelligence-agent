@@ -6,4 +6,7 @@
     <Project Path="src/backend-aspnet/SiteMapAgent.Domain/SiteMapAgent.Domain.csproj" />
     <Project Path="src/backend-aspnet/SiteMapAgent.Infrastructure/SiteMapAgent.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SiteMapAgent.Application.Tests/SiteMapAgent.Application.Tests.csproj" />
+  </Folder>
 </Solution>
