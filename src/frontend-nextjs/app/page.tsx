@@ -16,13 +16,13 @@ import {
 import {
   Globe,
   Play,
-  CheckCircle,
   Clock,
   AlertTriangle,
   FileText,
   Share2,
   Layers,
   GitFork,
+  CheckCircle,
 } from "lucide-react";
 
 export default function DashboardPage() {
@@ -95,6 +95,7 @@ export default function DashboardPage() {
       setGraphData(null);
       setActiveTab("graph");
     } catch (err) {
+      console.error("Failed to start audit:", err);
       alert("Failed to initialize audit. Ensure ASP.NET Core API is running on port 5132.");
     } finally {
       setLoading(false);
@@ -135,7 +136,7 @@ export default function DashboardPage() {
             <Play className="w-4 h-4 text-slate-700" />
             Configure New Audit
           </h2>
-          <form onSubmit={handleStartAudit} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <form onSubmit={handleStartAudit} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-slate-600 mb-1">Target Web URL</label>
               <div className="relative">
@@ -158,6 +159,17 @@ export default function DashboardPage() {
                 max={5}
                 value={maxDepth}
                 onChange={(e) => setMaxDepth(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-900 focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1">Max Pages</label>
+              <input
+                type="number"
+                min={5}
+                max={100}
+                value={maxPages}
+                onChange={(e) => setMaxPages(Number(e.target.value))}
                 className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-900 focus:outline-none"
               />
             </div>

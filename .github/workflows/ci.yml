@@ -74,6 +74,4 @@ jobs:
 
       - name: Compile Next.js Application
         working-directory: ./src/frontend-nextjs
-        env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
         run: npm run build
