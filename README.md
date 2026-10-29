@@ -1,4 +1,5 @@
 # SiteMap Intelligence Agent
+[![CI/CD Quality Pipeline](https://github.com/Rajeevkr3/sitemap-intelligence-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/Rajeevkr3/sitemap-intelligence-agent/actions/workflows/ci.yml)
 > Production-grade, distributed web crawler, directed graph topological analyzer, and semantic vector deduplication agent built with **ASP.NET Core 10 Clean Architecture**, **Python 3.13 (NetworkX & FastEmbed ONNX)**, **PostgreSQL 16 (pgvector)**, and **Next.js 14**.
 
 ---
@@ -14,23 +15,23 @@
 |   - Draggable Nodes & Click Navigation    - Entity Framework Core / Npgsql            |
 |   - Defect Ledger & Centrality Tables     - Keyless ADO.NET Edge Projection           |
 +-------------------------------------------+-------------------------------------------+
-|
-v
-+---------------------------------------------+
-|    PostgreSQL 16 + pgvector Container       |
-|  - audit_jobs, crawled_pages, audit_issues  |
-|  - page_hyperlinks (directed edges)         |
-|  - 384-dimensional vector embeddings        |
-|  - IVFFlat Cosine Distance Index (<=>)      |
-+----------------------+----------------------+
-^
-| Worker Transaction Loop
-+----------------------+----------------------+
-|         Python 3.13 Engine Daemon           |
-|  - Async BFS Crawler (httpx, asyncio)       |
-|  - Directed Graph Centrality (NetworkX)     |
-|  - Semantic Deduplication (FastEmbed ONNX)  |
-+---------------------------------------------+
+                                          |
+                                          v
+                   +---------------------------------------------+
+                   |    PostgreSQL 16 + pgvector Container       |
+                   |  - audit_jobs, crawled_pages, audit_issues  |
+                   |  - page_hyperlinks (directed edges)         |
+                   |  - 384-dimensional vector embeddings        |
+                   |  - IVFFlat Cosine Distance Index (<=>)      |
+                   +----------------------+----------------------+
+                                          ^
+                                          | Worker Transaction Loop
+                   +----------------------+----------------------+
+                   |         Python 3.13 Engine Daemon           |
+                   |  - Async BFS Crawler (httpx, asyncio)       |
+                   |  - Directed Graph Centrality (NetworkX)     |
+                   |  - Semantic Deduplication (FastEmbed ONNX)  |
+                   +---------------------------------------------+
 
 
 ### Key Architectural Pillars
