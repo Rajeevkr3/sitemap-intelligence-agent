@@ -5,26 +5,32 @@
 
 ## 1. System Architecture Overview
 
-                  +------------------------------------------+
-                  |         Next.js 14 Dashboard             |
-                  |   (Force-Directed 2D Graph Visualizer)   |
-                  +--------------------+---------------------+
-                                       | HTTP Requests (CORS)
-                                       v
-                  +--------------------+---------------------+
-                  |    ASP.NET Core 10 Web API (CQRS)        |
-                  |   Domain | Application | Infrastructure  |
-                  +--------------------+---------------------+
-                                       |
-                +----------------------+----------------------+
-                |                                             |
-                v                                             v
-+-----------------+-------------------+       +-----------------+-------------------+
-|      PostgreSQL 16 + pgvector       | <==== |    Python 3.13 Engine (Daemon)      |
-|  - Relational Graph & Issue Tables  |       |  - Async BFS Crawler (httpx)        |
-|  - 384-Dim Semantic Embeddings      |       |  - NetworkX Centrality & PageRank   |
-|  - IVFFlat Cosine Similarity Search |       |  - FastEmbed all-MiniLM-L6-v2 ONNX  |
-+-------------------------------------+       +-------------------------------------+
++---------------------------------------------------------------------------------------+
+|                                    FULL SYSTEM ARCHITECTURE                           |
++---------------------------------------------------------------------------------------+
+|  [Next.js 14 Frontend]  <--HTTP/CORS-->  [ASP.NET Core 10 Web API]                    |
+|   - Real-time Audit Dispatch              - CQRS Architecture (MediatR)               |
+|   - Interactive SVG Topology Graph        - Clean Architecture Layers                 |
+|   - Draggable Nodes & Click Navigation    - Entity Framework Core / Npgsql            |
+|   - Defect Ledger & Centrality Tables     - Keyless ADO.NET Edge Projection           |
++-------------------------------------------+-------------------------------------------+
+|
+v
++---------------------------------------------+
+|    PostgreSQL 16 + pgvector Container       |
+|  - audit_jobs, crawled_pages, audit_issues  |
+|  - page_hyperlinks (directed edges)         |
+|  - 384-dimensional vector embeddings        |
+|  - IVFFlat Cosine Distance Index (<=>)      |
++----------------------+----------------------+
+^
+| Worker Transaction Loop
++----------------------+----------------------+
+|         Python 3.13 Engine Daemon           |
+|  - Async BFS Crawler (httpx, asyncio)       |
+|  - Directed Graph Centrality (NetworkX)     |
+|  - Semantic Deduplication (FastEmbed ONNX)  |
++---------------------------------------------+
 
 
 ### Key Architectural Pillars
