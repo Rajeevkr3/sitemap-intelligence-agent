@@ -36,7 +36,29 @@ export interface AuditIssue {
     createdAt: string;
 }
 
-export async function createAuditJob(targetUrl: string, maxDepth = 3, maxPages = 50): Promise<{ jobId: string }> {
+export interface GraphNode {
+    id: string;
+    label: string;
+    pageRank: number;
+    inDegree: number;
+    isOrphan: boolean;
+}
+
+export interface GraphEdge {
+    source: string;
+    target: string;
+}
+
+export interface GraphTopology {
+    nodes: GraphNode[];
+    edges: GraphEdge[];
+}
+
+export async function createAuditJob(
+    targetUrl: string,
+    maxDepth = 3,
+    maxPages = 50
+): Promise<{ jobId: string }> {
     const res = await fetch(API_BASE_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,5 +83,14 @@ export async function fetchCrawledPages(jobId: string): Promise<CrawledPage[]> {
 export async function fetchAuditIssues(jobId: string): Promise<AuditIssue[]> {
     const res = await fetch(`${API_BASE_URL}/${jobId}/issues`, { cache: "no-store" });
     if (!res.ok) throw new Error("Failed to fetch audit issues");
+    return res.json();
+}
+
+export async function fetchGraphTopology(jobId: string): Promise<GraphTopology> {
+    const res = await fetch(`${API_BASE_URL}/${jobId}/graph`, { cache: "no-store" });
+    if (!res.ok) {
+        // Graceful fallback if backend endpoint is still rebuilding
+        return { nodes: [], edges: [] };
+    }
     return res.json();
 }

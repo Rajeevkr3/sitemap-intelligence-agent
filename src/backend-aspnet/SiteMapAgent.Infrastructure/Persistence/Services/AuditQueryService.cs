@@ -79,4 +79,61 @@ public class AuditQueryService : IAuditQueryService
             ))
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<GraphDataDto> GetGraphTopologyAsync(Guid jobId, CancellationToken cancellationToken = default)
+    {
+        // 1. Fetch crawled page vertices with metrics
+        var pages = await _context.CrawledPages
+            .AsNoTracking()
+            .Where(p => p.JobId == jobId)
+            .Select(p => new GraphNodeDto(
+                p.Url,
+                p.PageTitle ?? p.Url,
+                p.PageRankScore,
+                p.InDegree,
+                p.IsOrphan
+            ))
+            .ToListAsync(cancellationToken);
+
+        // 2. Fetch page linkages directly via ADO.NET connection on the existing DbContext
+        var edges = new List<GraphEdgeDto>();
+        var pageUrlSet = pages.Select(p => p.Id).ToHashSet();
+
+        var connection = _context.Database.GetDbConnection();
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"
+                SELECT src.url AS source_url, h.target_url 
+                FROM page_hyperlinks h
+                JOIN crawled_pages src ON h.source_page_id = src.id
+                WHERE h.job_id = @jobId";
+
+            var param = command.CreateParameter();
+            param.ParameterName = "@jobId";
+            param.Value = jobId;
+            command.Parameters.Add(param);
+
+            if (connection.State != System.Data.ConnectionState.Open)
+            {
+                await connection.OpenAsync(cancellationToken);
+            }
+
+            await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
+            {
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    var source = reader.GetString(0);
+                    var target = reader.GetString(1);
+
+                    // Only link vertices present in this crawl graph
+                    if (pageUrlSet.Contains(source) && pageUrlSet.Contains(target))
+                    {
+                        edges.Add(new GraphEdgeDto(source, target));
+                    }
+                }
+            }
+        }
+
+        return new GraphDataDto(pages, edges);
+    }
 }

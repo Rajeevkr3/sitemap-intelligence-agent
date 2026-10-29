@@ -7,11 +7,13 @@ namespace SiteMapAgent.Application.Audits.Queries;
 public record GetAuditJobQuery(Guid JobId) : IRequest<AuditJobDetailDto?>;
 public record GetCrawledPagesQuery(Guid JobId) : IRequest<IReadOnlyList<CrawledPageDto>>;
 public record GetAuditIssuesQuery(Guid JobId) : IRequest<IReadOnlyList<AuditIssueDto>>;
+public record GetGraphTopologyQuery(Guid JobId) : IRequest<GraphDataDto>;
 
 public class GetAuditQueriesHandler :
     IRequestHandler<GetAuditJobQuery, AuditJobDetailDto?>,
     IRequestHandler<GetCrawledPagesQuery, IReadOnlyList<CrawledPageDto>>,
-    IRequestHandler<GetAuditIssuesQuery, IReadOnlyList<AuditIssueDto>>
+    IRequestHandler<GetAuditIssuesQuery, IReadOnlyList<AuditIssueDto>>,
+    IRequestHandler<GetGraphTopologyQuery, GraphDataDto>
 {
     private readonly IAuditQueryService _queryService;
 
@@ -28,4 +30,7 @@ public class GetAuditQueriesHandler :
 
     public Task<IReadOnlyList<AuditIssueDto>> Handle(GetAuditIssuesQuery request, CancellationToken cancellationToken) =>
         _queryService.GetAuditIssuesAsync(request.JobId, cancellationToken);
+
+    public Task<GraphDataDto> Handle(GetGraphTopologyQuery request, CancellationToken cancellationToken) =>
+        _queryService.GetGraphTopologyAsync(request.JobId, cancellationToken);
 }

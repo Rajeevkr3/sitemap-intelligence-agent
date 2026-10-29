@@ -62,4 +62,12 @@ public class AuditsController : ControllerBase
         var issues = await _mediator.Send(new GetAuditIssuesQuery(id));
         return Ok(issues);
     }
+
+    [HttpGet("{id:guid}/graph")]
+    [ProducesResponseType(typeof(GraphDataDto), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetGraphTopology(Guid id)
+    {
+    var graph = await _mediator.Send(new GetGraphTopologyQuery(id));
+    return Ok(graph);
+    }
 }

@@ -35,3 +35,11 @@ public record AuditIssueDto(
     string Description,
     DateTime CreatedAt
 );
+
+public record GraphDataDto(
+    IReadOnlyList<GraphNodeDto> Nodes,
+    IReadOnlyList<GraphEdgeDto> Edges
+);
+
+public record GraphNodeDto(string Id, string Label, double PageRank, int InDegree, bool IsOrphan);
+public record GraphEdgeDto(string Source, string Target);
