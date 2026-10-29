@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useMemo } from "react";
 import { GraphTopology } from "@/lib/api";
 
 interface Props {
@@ -8,149 +8,155 @@ interface Props {
 }
 
 export default function NetworkGraph({ data }: Props) {
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const width = 800;
+    const height = 480;
+    const centerX = width / 2;
+    const centerY = height / 2;
 
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
+    // Compute layout positions using deterministic circular topology with degree offsets
+    const { layoutNodes, layoutEdges } = useMemo(() => {
+        const rawNodes = data?.nodes || [];
+        const rawEdges = data?.edges || [];
+        const count = rawNodes.length;
 
-        let animationFrameId: number;
-        const width = (canvas.width = canvas.parentElement?.clientWidth || 800);
-        const height = (canvas.height = 500);
+        if (count === 0) {
+            return { layoutNodes: [], layoutEdges: [] };
+        }
 
-        // Initial node positioning in a circle
-        const nodeCount = data.nodes.length || 1;
-        const nodes = data.nodes.map((n, i) => {
-            const angle = (i / nodeCount) * 2 * Math.PI;
-            const radius = Math.min(width, height) * 0.35;
-            return {
-                ...n,
-                x: width / 2 + radius * Math.cos(angle) + (Math.random() - 0.5) * 40,
-                y: height / 2 + radius * Math.sin(angle) + (Math.random() - 0.5) * 40,
-                vx: 0,
-                vy: 0,
-                radius: Math.max(Math.min(n.inDegree * 1.5 + 6, 20), 6),
+        const radius = Math.min(centerX, centerY) - 80;
+        const nodeMap = new Map();
+
+        const computedNodes = rawNodes.map((node, index) => {
+            // Root or highest centrality node gets placed near center
+            const isCentral = node.inDegree > 5 || node.pageRank > 0.05;
+            const angle = (index / count) * 2 * Math.PI;
+            const r = isCentral ? radius * 0.45 : radius;
+
+            const x = Math.round(centerX + r * Math.cos(angle));
+            const y = Math.round(centerY + r * Math.sin(angle));
+            const nodeRadius = Math.max(Math.min(node.inDegree * 1.5 + 8, 22), 8);
+
+            const nodeObj = {
+                ...node,
+                x,
+                y,
+                radius: nodeRadius,
+                displayLabel: (node.label || node.id).replace(/^https?:\/\/[^/]+/, "") || "/",
             };
+
+            nodeMap.set(node.id, nodeObj);
+            return nodeObj;
         });
 
-        const nodeMap = new Map(nodes.map((n) => [n.id, n]));
-
-        // Simple spring simulation loop
-        const render = () => {
-            // Repulsion between nodes
-            for (let i = 0; i < nodes.length; i++) {
-                for (let j = i + 1; j < nodes.length; j++) {
-                    const dx = nodes[j].x - nodes[i].x;
-                    const dy = nodes[j].y - nodes[i].y;
-                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                    if (dist < 180) {
-                        const force = (180 - dist) / dist * 0.04;
-                        nodes[i].vx -= dx * force;
-                        nodes[i].vy -= dy * force;
-                        nodes[j].vx += dx * force;
-                        nodes[j].vy += dy * force;
-                    }
-                }
-            }
-
-            // Attraction along edges
-            data.edges.forEach((edge) => {
+        const computedEdges = rawEdges
+            .map((edge) => {
                 const source = nodeMap.get(edge.source);
                 const target = nodeMap.get(edge.target);
-                if (source && target) {
-                    const dx = target.x - source.x;
-                    const dy = target.y - source.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-                    const force = (dist - 100) * 0.005;
-                    source.vx += dx * force;
-                    source.vy += dy * force;
-                    target.vx -= dx * force;
-                    target.vy -= dy * force;
-                }
-            });
+                if (!source || !target) return null;
+                return { source, target };
+            })
+            .filter(Boolean);
 
-            // Gravity to center & position update
-            nodes.forEach((n) => {
-                n.vx += (width / 2 - n.x) * 0.002;
-                n.vy += (height / 2 - n.y) * 0.002;
-                n.vx *= 0.88; // Damping
-                n.vy *= 0.88;
-                n.x += n.vx;
-                n.y += n.vy;
-            });
+        return { layoutNodes: computedNodes, layoutEdges: computedEdges };
+    }, [data, centerX, centerY]);
 
-            // Draw frame
-            ctx.clearRect(0, 0, width, height);
-
-            // Draw directed edges
-            data.edges.forEach((edge) => {
-                const source = nodeMap.get(edge.source);
-                const target = nodeMap.get(edge.target);
-                if (source && target) {
-                    ctx.beginPath();
-                    ctx.moveTo(source.x, source.y);
-                    ctx.lineTo(target.x, target.y);
-                    ctx.strokeStyle = "rgba(71, 85, 105, 0.4)";
-                    ctx.lineWidth = 1.2;
-                    ctx.stroke();
-
-                    // Arrow head
-                    const angle = Math.atan2(target.y - source.y, target.x - source.x);
-                    const arrowLen = 8;
-                    const toX = target.x - Math.cos(angle) * (target.radius + 2);
-                    const toY = target.y - Math.sin(angle) * (target.radius + 2);
-
-                    ctx.beginPath();
-                    ctx.moveTo(toX, toY);
-                    ctx.lineTo(
-                        toX - arrowLen * Math.cos(angle - Math.PI / 6),
-                        toY - arrowLen * Math.sin(angle - Math.PI / 6)
-                    );
-                    ctx.lineTo(
-                        toX - arrowLen * Math.cos(angle + Math.PI / 6),
-                        toY - arrowLen * Math.sin(angle + Math.PI / 6)
-                    );
-                    ctx.fillStyle = "rgba(100, 116, 139, 0.7)";
-                    ctx.fill();
-                }
-            });
-
-            // Draw nodes
-            nodes.forEach((n) => {
-                ctx.beginPath();
-                ctx.arc(n.x, n.y, n.radius, 0, 2 * Math.PI);
-                ctx.fillStyle = n.isOrphan ? "#ef4444" : n.pageRank > 0.05 ? "#10b981" : "#3b82f6";
-                ctx.fill();
-                ctx.strokeStyle = "#ffffff";
-                ctx.lineWidth = 1.5;
-                ctx.stroke();
-
-                // Node label
-                ctx.font = "10px sans-serif";
-                ctx.fillStyle = "#cbd5e1";
-                const shortName = n.label.length > 20 ? n.label.substring(0, 20) + "..." : n.label;
-                ctx.fillText(shortName, n.x + n.radius + 4, n.y + 3);
-            });
-
-            animationFrameId = requestAnimationFrame(render);
-        };
-
-        render();
-
-        return () => cancelAnimationFrame(animationFrameId);
-    }, [data]);
+    if (!data || !data.nodes || data.nodes.length === 0) {
+        return (
+            <div className="w-full h-[480px] bg-slate-950 rounded-xl flex items-center justify-center text-slate-400 text-sm border border-slate-800">
+                No topology nodes discovered for this audit job.
+            </div>
+        );
+    }
 
     return (
-        <div className="w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 relative">
+        <div className="w-full bg-slate-950 rounded-xl overflow-hidden border border-slate-800 relative shadow-inner">
+            {/* Legend Badge */}
             <div className="absolute top-4 left-4 z-10 bg-slate-900/90 backdrop-blur px-3 py-2 rounded-lg border border-slate-800 text-xs text-slate-300 space-y-1 pointer-events-none">
                 <div className="font-semibold text-slate-200">Graph Legend</div>
-                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Standard Node</div>
-                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> High Centrality / PageRank</div>
-                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-500"></span> Orphan Node</div>
+                <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Standard Page
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> High Centrality / PageRank
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Orphan Node
+                </div>
             </div>
-            <canvas ref={canvasRef} className="w-full h-[500px] block" />
+
+            {/* Responsive SVG Canvas */}
+            <svg
+                viewBox={`0 0 ${width} ${height}`}
+                className="w-full h-[480px] block"
+                style={{ background: "#020617" }}
+            >
+                <defs>
+                    <marker
+                        id="arrowhead"
+                        markerWidth="7"
+                        markerHeight="7"
+                        refX="6"
+                        refY="3.5"
+                        orient="auto"
+                    >
+                        <polygon points="0 0, 7 3.5, 0 7" fill="#64748b" />
+                    </marker>
+                </defs>
+
+                {/* Directed Link Edges */}
+                <g stroke="#334155" strokeWidth="1.2" strokeOpacity="0.6">
+                    {layoutEdges.map((edge: any, i: number) => (
+                        <line
+                            key={`edge-${i}`}
+                            x1={edge.source.x}
+                            y1={edge.source.y}
+                            x2={edge.target.x}
+                            y2={edge.target.y}
+                            markerEnd="url(#arrowhead)"
+                        />
+                    ))}
+                </g>
+
+                {/* Graph Vertices */}
+                <g>
+                    {layoutNodes.map((node: any) => {
+                        const fillColor = node.isOrphan
+                            ? "#f43f5e"
+                            : node.pageRank > 0.05 || node.inDegree > 8
+                                ? "#10b981"
+                                : "#3b82f6";
+
+                        return (
+                            <g key={node.id} className="cursor-pointer group">
+                                <circle
+                                    cx={node.x}
+                                    cy={node.y}
+                                    r={node.radius}
+                                    fill={fillColor}
+                                    stroke="#ffffff"
+                                    strokeWidth="1.5"
+                                    className="transition-transform duration-200 hover:scale-125"
+                                >
+                                    <title>{`${node.label}\nURL: ${node.id}\nIn-Degree: ${node.inDegree}\nPageRank: ${node.pageRank}`}</title>
+                                </circle>
+                                <text
+                                    x={node.x}
+                                    y={node.y + node.radius + 12}
+                                    textAnchor="middle"
+                                    fill="#94a3b8"
+                                    fontSize="10"
+                                    fontFamily="monospace"
+                                    className="pointer-events-none select-none"
+                                >
+                                    {node.displayLabel.length > 18
+                                        ? node.displayLabel.slice(0, 18) + "…"
+                                        : node.displayLabel}
+                                </text>
+                            </g>
+                        );
+                    })}
+                </g>
+            </svg>
         </div>
     );
 }
