@@ -1,0 +1,82 @@
+services:
+  # 1. PostgreSQL 16 with pgvector Extension
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: sitemap_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: sitemap_agent_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+      - ./db/init/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sitemap_agent_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sitemap_net
+
+  # 2. ASP.NET Core 10 Web API
+  api:
+    build:
+      context: .
+      dockerfile: src/backend-aspnet/Dockerfile
+    container_name: sitemap_api_prod
+    restart: always
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=sitemap_agent_db;Username=postgres;Password=password123;
+    ports:
+      - "5132:5132"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sitemap_net
+
+  # 3. Python 3.13 Analysis Engine Daemon
+  engine:
+    build:
+      context: ./src/engine-python
+      dockerfile: Dockerfile
+    container_name: sitemap_engine_prod
+    restart: always
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=sitemap_agent_db
+      - DB_USER=postgres
+      - DB_PASSWORD=password123
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sitemap_net
+
+  # 4. Next.js 14 Dashboard
+  frontend:
+    build:
+      context: ./src/frontend-nextjs
+      dockerfile: Dockerfile
+    container_name: sitemap_frontend_prod
+    restart: always
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5132/api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    networks:
+      - sitemap_net
+
+volumes:
+  pgdata_prod:
+
+networks:
+  sitemap_net:
+    driver: bridge
