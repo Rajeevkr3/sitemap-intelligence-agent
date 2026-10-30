@@ -25,3 +25,27 @@ body {
     text-wrap: balance;
   }
 }
+
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+
+  header button,
+  form,
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .shadow-sm,
+  .shadow-inner {
+    box-shadow: none !important;
+  }
+}

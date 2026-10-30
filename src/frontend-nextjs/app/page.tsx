@@ -23,14 +23,16 @@ import {
   Layers,
   GitFork,
   CheckCircle,
+  Download,
+  Printer,
 } from "lucide-react";
 
 export default function DashboardPage() {
-  const [targetUrl, setTargetUrl] = useState<string>("https://books.toscrape.com");
+  const [targetUrl, setTargetUrl] = useState<string>("https://thewebexpress.in");
   const [maxDepth, setMaxDepth] = useState<number>(2);
   const [maxPages, setMaxPages] = useState<number>(15);
 
-  const [activeJobId, setActiveJobId] = useState<string>("49609bc0-65c3-426e-8c35-5d58d6b8f284");
+  const [activeJobId, setActiveJobId] = useState<string>("");
   const [jobDetail, setJobDetail] = useState<AuditJobDetail | null>(null);
 
   const [pages, setPages] = useState<CrawledPage[]>([]);
@@ -41,6 +43,8 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<"graph" | "pages" | "issues">("graph");
 
   const loadJobData = async (jobId: string) => {
+    if (!jobId) return;
+
     try {
       const job = await fetchAuditJob(jobId);
       setJobDetail(job);
@@ -104,6 +108,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
+      {/* Top Application Header */}
       <header className="border-b border-slate-200 bg-white sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-3">
@@ -115,10 +120,32 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-500 font-medium">Topological & Semantic Graph Auditor</p>
             </div>
           </div>
+
           {jobDetail && (
-            <div className="flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider">
+            <div className="flex items-center space-x-3">
+              {/* Direct native browser download link bypassing JavaScript blob issues */}
+              <a
+                href={`http://localhost:5132/api/v1/audits/${jobDetail.id}/export/csv`}
+                download={`audit-report-${jobDetail.rootDomain}-${jobDetail.id.slice(0, 8)}.csv`}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 transition shadow-sm cursor-pointer"
+                title="Download CSV Audit Report"
+              >
+                <Download className="w-3.5 h-3.5 text-slate-600" />
+                Export CSV
+              </a>
+
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-xs font-semibold text-slate-700 transition shadow-sm cursor-pointer"
+                title="Print Executive PDF"
+              >
+                <Printer className="w-3.5 h-3.5 text-slate-600" />
+                Print PDF
+              </button>
+
               <span
-                className={`px-3 py-1 rounded-full ${jobDetail.status === "COMPLETED"
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider ${jobDetail.status === "COMPLETED"
                     ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
                     : "bg-amber-100 text-amber-800 border border-amber-300 animate-pulse"
                   }`}
@@ -130,8 +157,10 @@ export default function DashboardPage() {
         </div>
       </header>
 
+      {/* Main Content Dashboard */}
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        <section className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+        {/* Form Configuration Card (Hidden during print) */}
+        <section className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm no-print">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
             <Play className="w-4 h-4 text-slate-700" />
             Configure New Audit
@@ -177,7 +206,7 @@ export default function DashboardPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2 px-4 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {loading ? "Queuing..." : "Start Full Audit"}
               </button>
@@ -185,6 +214,7 @@ export default function DashboardPage() {
           </form>
         </section>
 
+        {/* Audit Metrics Overview Cards */}
         {jobDetail && (
           <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
@@ -229,11 +259,13 @@ export default function DashboardPage() {
           </section>
         )}
 
+        {/* Tabbed Detail Section */}
         <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="flex border-b border-slate-200 bg-slate-50/50 px-6 pt-3">
+          <div className="flex border-b border-slate-200 bg-slate-50/50 px-6 pt-3 no-print">
             <button
+              type="button"
               onClick={() => setActiveTab("graph")}
-              className={`pb-3 px-4 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${activeTab === "graph"
+              className={`pb-3 px-4 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${activeTab === "graph"
                   ? "border-slate-900 text-slate-900"
                   : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
@@ -242,8 +274,9 @@ export default function DashboardPage() {
               Visual Graph Topology
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab("pages")}
-              className={`pb-3 px-4 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${activeTab === "pages"
+              className={`pb-3 px-4 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${activeTab === "pages"
                   ? "border-slate-900 text-slate-900"
                   : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
@@ -252,8 +285,9 @@ export default function DashboardPage() {
               Crawled Pages & Centrality ({pages.length})
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab("issues")}
-              className={`pb-3 px-4 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors ${activeTab === "issues"
+              className={`pb-3 px-4 text-sm font-semibold flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${activeTab === "issues"
                   ? "border-slate-900 text-slate-900"
                   : "border-transparent text-slate-500 hover:text-slate-700"
                 }`}
@@ -264,18 +298,20 @@ export default function DashboardPage() {
           </div>
 
           <div className="p-6">
+            {/* Visual Graph Tab */}
             {activeTab === "graph" && (
               <div>
                 {graphData && graphData.nodes && graphData.nodes.length > 0 ? (
                   <NetworkGraph data={graphData} />
                 ) : (
                   <div className="h-[400px] flex items-center justify-center text-slate-400 text-sm border border-dashed border-slate-300 rounded-xl">
-                    No graph linkages available for this audit run.
+                    {activeJobId ? "Loading graph linkages..." : "Submit an audit URL above to view graph topology."}
                   </div>
                 )}
               </div>
             )}
 
+            {/* Crawled Pages Tab */}
             {activeTab === "pages" && (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-slate-600">
@@ -311,6 +347,7 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* Audit Issues Tab */}
             {activeTab === "issues" && (
               <div className="space-y-3">
                 {issues.length === 0 ? (

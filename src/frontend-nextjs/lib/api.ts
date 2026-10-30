@@ -94,3 +94,19 @@ export async function fetchGraphTopology(jobId: string): Promise<GraphTopology> 
     }
     return res.json();
 }
+
+export async function downloadAuditReportCsv(jobId: string, domain: string): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/${jobId}/export/csv`);
+    if (!res.ok) {
+        throw new Error("Failed to export audit report");
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `audit-report-${domain}-${jobId.slice(0, 8)}.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.URL.revokeObjectURL(url);
+}
